@@ -180,6 +180,20 @@ export class LdapService {
     await this.modify(groupDN, changeObj)
   }
 
+  async deleteUserFromGroup(uuid, groupName) {
+    const {cn} = await this.getUserByUUID(uuid);
+    const userDN = `cn=${cn},${this.userBaseDN}`;
+    const groupDN = `cn=${groupName},${this.groupBaseDN}`
+
+    const changeObj = createModifyObj('delete', {
+      type: 'uniqueMember',
+      values: userDN
+    });
+
+    await this.modify(groupDN, changeObj);
+    return await this.getUserByUUID(uuid);
+  }
+
   async getUserGroups(uuid) {
     const searchOpts = {
       scope: 'sub',

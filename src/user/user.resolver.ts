@@ -47,6 +47,12 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     return this.service.findById(1)
   }
 
+  @Mutation(() => UserDto)
+  async deleteUserFromGroup(@Args('uuid', {type: () => Int}) uuid: number, @Args('groupName') groupName: string) {
+    await this.ldapService.deleteUserFromGroup(uuid, groupName);
+    return this.service.findById(1)
+  }
+
   @Query(() => UserDto)
   async userByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
     const user =  await this.ldapService.getUserByUUID(uuid);
@@ -67,6 +73,7 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     console.log('all groups', groups)
     return this.service.findById(1)
   }
+
 
   @Query(() => UserConnection)
   async users(@Args() query: UserQuery): Promise<ConnectionType<UserDto>> {
