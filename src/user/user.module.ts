@@ -20,7 +20,8 @@ import {LdapModule} from "@app/ldap";
           EntityClass: UserEntity,
           DTOClass: UserDto,
           create: {disabled: true},
-          read: {disabled: true}
+          read: {disabled: true},
+          update: { disabled: true },
         },
       ],
     }),

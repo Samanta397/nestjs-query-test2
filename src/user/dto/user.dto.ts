@@ -1,6 +1,5 @@
-import {Field, GraphQLISODateTime, ID, Int, ObjectType} from "@nestjs/graphql";
+import {Field, ID, Int, ObjectType} from "@nestjs/graphql";
 import {
-  FilterableField,
   FilterableUnPagedRelation,
   IDField,
   PagingStrategies,
@@ -8,7 +7,6 @@ import {
 } from "@ptc-org/nestjs-query-graphql";
 import {PermissionDto} from "../../permission/permission.dto";
 import {RoleDto} from "../../role/role.dto";
-import {Column} from "typeorm";
 
 @ObjectType('User')
 @FilterableUnPagedRelation('permissions', () => PermissionDto)

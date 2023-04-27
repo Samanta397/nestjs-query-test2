@@ -1,4 +1,4 @@
-import {Args, Mutation, Query, Resolver} from "@nestjs/graphql";
+import {Args, Int, Mutation, Query, Resolver} from "@nestjs/graphql";
 import {UserDto} from "./dto/user.dto";
 import {ConnectionType, CRUDResolver} from "@ptc-org/nestjs-query-graphql";
 import {UserEntity} from "./dto/user.entity";
@@ -6,6 +6,7 @@ import {InjectQueryService, QueryService} from "@ptc-org/nestjs-query-core";
 import {LdapService} from "@app/ldap";
 import {UserConnection, UserQuery} from "./user.types";
 import {CreateUserDto} from "./dto/user.input";
+import {UpdateUserDto} from "./dto/user-update.input";
 
 @Resolver(() => UserDto)
 export class UserResolver extends CRUDResolver(UserDto,  {
@@ -27,17 +28,22 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     return this.service.createOne(user)
   }
 
+  @Mutation(() => UserDto)
+  async updateUserByUUID(@Args('uuid', {type: () => Int}) uuid: number, @Args('updateObj') updateObj: UpdateUserDto) {
+    const user =  await this.ldapService.updateUserByUUID(uuid, updateObj);
+    console.log('user by uui', user)
+    return this.service.findById(1)
+  }
+
   @Query(() => UserDto)
-  async userByUUID(@Args('uuid') uuid: number) {
+  async userUserByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
     const user =  await this.ldapService.getUserByUUID(uuid);
-    console.log('>>>>>', user)
+    console.log('user by uui', user)
     return this.service.findById(1)
   }
 
   @Query(() => UserConnection)
   async users(@Args() query: UserQuery): Promise<ConnectionType<UserDto>> {
-    console.log(345345345345345345345345)
-
     return UserConnection.createFromPromise((q) => this.service.query(q), { ...query });
   }
 }

@@ -3,6 +3,7 @@ import * as ldap from 'ldapjs';
 import * as process from "process";
 import * as assert from "assert";
 import * as crypto from "crypto";
+import {createModifyObj} from "@app/ldap/helpers/createModifyObj";
 
 @Injectable()
 export class LdapService {
@@ -27,7 +28,7 @@ export class LdapService {
   }
 
   async createUser(user) {
-    const username = `${user.firstName}.${user.lastName}`;
+    const username = `${user.firstName}.${user.lastName}`.toLowerCase();
     const cn = `${user.firstName} ${user.lastName}`;
     const hash = crypto.createHash('md5').update(user.password).digest("hex");
     const passwordHash = `{MD5}${Buffer.from(hash, 'hex').toString('base64')}`;
@@ -43,7 +44,7 @@ export class LdapService {
       uidNumber: uidNumber,
       mail: `${username}@devit.group`,
       gidNumber: '500',
-      homeDirectory: `/home/users/${username.toLowerCase()}`,
+      homeDirectory: `/home/users/${username}`,
       userPassword: passwordHash,
       title: 'unknown',
       objectClass: ["posixAccount", "top", "inetOrgPerson"],
@@ -66,7 +67,7 @@ export class LdapService {
   }
 
   async getUserByUUID(uuid) {
-    let user: null;
+    let user = null;
     const searchOpts = {
       scope: 'sub',
       filter: `(uidNumber=${uuid})`,
@@ -83,49 +84,80 @@ export class LdapService {
     return user;
   }
 
+  async updateUserByUUID(uuid, updateObj) {
+    const {cn} = await this.getUserByUUID(uuid);
+    const userDN = `cn=${cn},${this.userBaseDN}`;
+    const { lastName, phone } = updateObj;
+    let snChangeObj = null;
+    let mobileChangeObj = null;
+    let changeObj = [];
+
+    if (lastName) {
+      snChangeObj = createModifyObj('replace', {
+        type: 'sn',
+        values: lastName
+      })
+      changeObj.push(snChangeObj)
+    }
+
+    if (phone) {
+      mobileChangeObj = createModifyObj('replace', {
+        type: 'mobile',
+        values: phone
+      })
+      changeObj.push(mobileChangeObj)
+    }
+
+    await this.modify(userDN, changeObj)
+
+    return await this.getUserByUUID(uuid);
+  }
+
   async getUserMaxUidNumber(): Promise<number> {
-    let maxUidNumber = 0;
     const searchOpts = {
       scope: 'sub',
       filter: '(objectClass=posixAccount)', // фільтр для пошуку користувачів
       attributes: ['uidNumber'], // атрибут, значення якого будуть отримані
     };
 
-    const searchResult = await this.search(this.userBaseDN, searchOpts);
+    return new Promise((resolve, reject) => {
+      let maxUidNumber = 0;
 
-    // @ts-ignore
-    const uidNumber = parseInt(searchResult.attributes[0].values[0]);
+      this.ldapClient.search(this.userBaseDN, searchOpts, (err, res) => {
+        assert.ifError(err);
 
-    if (uidNumber > maxUidNumber) {
-      maxUidNumber = uidNumber;
-    }
+        res.on('searchEntry', function (entry) {
+          const uidNumber = parseInt(entry.pojo.attributes[0].values[0]);
+          if (uidNumber > maxUidNumber) {
+            maxUidNumber = uidNumber;
+          }
+        });
 
-    return maxUidNumber + 1;
+        res.on('error', function (err) {
+          reject(err);
+        });
+
+        res.on('end', (result) => {
+            if (result.status === 0) {
+              resolve(maxUidNumber + 1);
+            } else {
+              reject(new Error(`LDAP search failed with result code ${result.status}`));
+            }
+        })
+      })
+    });
   }
 
   async addUserToGroup(userDN, groupDN) {
-    const change = new ldap.Change({
-      operation: 'add',
-      modification: new ldap.Attribute({
-        type: 'uniqueMember',
-        values: [userDN]
-      })
-    });
+    const changeObj = createModifyObj('add', {
+      type: 'uniqueMember',
+      values: [userDN]
+    })
 
-    await this.ldapClient.modify(groupDN, change, (err) => {
-      if (err) {
-        throw new Error(err)
-      }
-    });
+    await this.modify(groupDN, changeObj)
   }
 
-  start() {
-    this.ldapClient.bind(this.ldapUsername, this.ldapPassword, (err) => {
-      assert.ifError(err);
-    });
-  }
-
-  async search(searchBaseDN,searchOpts) {
+  async search(searchBaseDN, searchOpts) {
     return new Promise((resolve, reject) => {
       this.ldapClient.search(searchBaseDN, searchOpts, (err, res) => {
         assert.ifError(err);
@@ -138,6 +170,22 @@ export class LdapService {
           reject(err);
         });
       })
+    });
+  }
+
+  async modify(modifyDN, changeOpts) {
+    await this.ldapClient.modify(modifyDN, changeOpts, (err) => {
+      if (err) {
+        throw new Error(err)
+      }
+    });
+  }
+
+
+
+  start() {
+    this.ldapClient.bind(this.ldapUsername, this.ldapPassword, (err) => {
+      assert.ifError(err);
     });
   }
 }
