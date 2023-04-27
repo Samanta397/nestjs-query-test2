@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import * as ldap from 'ldapjs';
 import * as process from "process";
 import * as assert from "assert";
-import * as crypto from "crypto";
 import {createModifyObj} from "@app/ldap/helpers/createModifyObj";
+import {createHashPassword} from "@app/ldap/helpers/createHashPassword";
 
 @Injectable()
 export class LdapService {
@@ -30,8 +30,7 @@ export class LdapService {
   async createUser(user) {
     const username = `${user.firstName}.${user.lastName}`.toLowerCase();
     const cn = `${user.firstName} ${user.lastName}`;
-    const hash = crypto.createHash('md5').update(user.password).digest("hex");
-    const passwordHash = `{MD5}${Buffer.from(hash, 'hex').toString('base64')}`;
+    const passwordHash = createHashPassword(user.password)
     const uidNumber = await this.getUserMaxUidNumber();
     const userDN = `cn=${cn},${this.userBaseDN}`;
 
@@ -109,7 +108,6 @@ export class LdapService {
     }
 
     await this.modify(userDN, changeObj)
-
     return await this.getUserByUUID(uuid);
   }
 
@@ -122,6 +120,20 @@ export class LdapService {
         throw new Error(err)
       }
     });
+  }
+
+  async updateUserPassword(uuid, newPassword) {
+    const {cn} = await this.getUserByUUID(uuid);
+    const userDN = `cn=${cn},${this.userBaseDN}`;
+    const newPasswordHash = createHashPassword(newPassword);
+
+    const changeObj = createModifyObj('replace', {
+      type: 'userPassword',
+      values: newPasswordHash
+    });
+
+    await this.modify(userDN, changeObj)
+    return await this.getUserByUUID(uuid);
   }
 
   async getUserMaxUidNumber(): Promise<number> {

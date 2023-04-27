@@ -41,6 +41,12 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     return this.service.findById(1)
   }
 
+  @Mutation(() => UserDto)
+  async updateUserPassword(@Args('uuid', {type: () => Int}) uuid: number, @Args('password') password: string) {
+    await this.ldapService.updateUserPassword(uuid, password);
+    return this.service.findById(1)
+  }
+
   @Query(() => UserDto)
   async userByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
     const user =  await this.ldapService.getUserByUUID(uuid);
