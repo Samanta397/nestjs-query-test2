@@ -113,6 +113,17 @@ export class LdapService {
     return await this.getUserByUUID(uuid);
   }
 
+  async deleteUserByUUID(uuid) {
+    const {cn} = await this.getUserByUUID(uuid);
+    const userDN = `cn=${cn},${this.userBaseDN}`;
+
+    this.ldapClient.del(userDN, function (err) {
+      if (err) {
+        throw new Error(err)
+      }
+    });
+  }
+
   async getUserMaxUidNumber(): Promise<number> {
     const searchOpts = {
       scope: 'sub',

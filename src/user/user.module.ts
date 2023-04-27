@@ -22,6 +22,7 @@ import {LdapModule} from "@app/ldap";
           create: {disabled: true},
           read: {disabled: true},
           update: { disabled: true },
+          delete: { disabled: true },
         },
       ],
     }),

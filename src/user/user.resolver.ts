@@ -31,12 +31,18 @@ export class UserResolver extends CRUDResolver(UserDto,  {
   @Mutation(() => UserDto)
   async updateUserByUUID(@Args('uuid', {type: () => Int}) uuid: number, @Args('updateObj') updateObj: UpdateUserDto) {
     const user =  await this.ldapService.updateUserByUUID(uuid, updateObj);
-    console.log('user by uui', user)
+    console.log('update user by uui', user)
+    return this.service.findById(1)
+  }
+
+  @Mutation(() => UserDto)
+  async deleteUserByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
+    await this.ldapService.deleteUserByUUID(uuid);
     return this.service.findById(1)
   }
 
   @Query(() => UserDto)
-  async userUserByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
+  async userByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
     const user =  await this.ldapService.getUserByUUID(uuid);
     console.log('user by uui', user)
     return this.service.findById(1)
