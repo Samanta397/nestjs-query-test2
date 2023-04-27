@@ -180,6 +180,54 @@ export class LdapService {
     await this.modify(groupDN, changeObj)
   }
 
+  async getUserGroups(uuid) {
+    const searchOpts = {
+      scope: 'sub',
+      filter: `(uidNumber=${uuid})`,
+      attributes: ['memberOf']
+    };
+
+    const searchResult = await this.search(this.userBaseDN, searchOpts);
+    // @ts-ignore
+    const groups = searchResult.attributes[0].values.reduce((acc, group) => {
+      acc.push(group.split(',')[0].slice(3))
+      return acc
+    }, [])
+
+    return groups
+  }
+
+  async getAllGroups() {
+    const searchOpts = {
+      scope: 'sub',
+      filter: '(objectClass=groupOfUniqueNames)',
+      attributes: ['cn']
+    };
+
+    return new Promise((resolve, reject) => {
+      let groupNames = [];
+      this.ldapClient.search(this.groupBaseDN, searchOpts, (err, res) => {
+        assert.ifError(err);
+
+        res.on('searchEntry', function (entry) {
+          groupNames.push(entry.pojo.attributes[0].values[0]);
+        });
+
+        res.on('error', function (err) {
+          reject(err);
+        });
+
+        res.on('end', (result) => {
+          if (result.status === 0) {
+            resolve(groupNames);
+          } else {
+            reject(new Error(`LDAP search failed with result code ${result.status}`));
+          }
+        })
+      })
+    });
+  }
+
   async search(searchBaseDN, searchOpts) {
     return new Promise((resolve, reject) => {
       this.ldapClient.search(searchBaseDN, searchOpts, (err, res) => {

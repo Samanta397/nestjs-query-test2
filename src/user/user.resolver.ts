@@ -54,6 +54,20 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     return this.service.findById(1)
   }
 
+  @Query(() => UserDto)
+  async userGroups(@Args('uuid', {type: () => Int}) uuid: number) {
+    const groups = await this.ldapService.getUserGroups(uuid);
+    console.log('user by groups', groups)
+    return this.service.findById(1)
+  }
+
+  @Query(() => UserDto)
+  async groups() {
+    const groups = await this.ldapService.getAllGroups();
+    console.log('all groups', groups)
+    return this.service.findById(1)
+  }
+
   @Query(() => UserConnection)
   async users(@Args() query: UserQuery): Promise<ConnectionType<UserDto>> {
     return UserConnection.createFromPromise((q) => this.service.query(q), { ...query });
