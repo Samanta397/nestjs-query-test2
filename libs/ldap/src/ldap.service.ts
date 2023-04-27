@@ -10,6 +10,7 @@ export class LdapService {
   private readonly groupBaseDN: string;
   private readonly ldapUsername: string;
   private readonly ldapPassword: string;
+  private readonly defaultGroups: string[];
 
   private client: ldap.Client;
 
@@ -18,6 +19,7 @@ export class LdapService {
     this.groupBaseDN = process.env.LDAP_GROUP_BASEDN;
     this.ldapUsername = process.env.LDAP_USERNAME;
     this.ldapPassword = process.env.LDAP_PASSWORD;
+    this.defaultGroups = process.env.LDAP_DEFAULT_USER_GROUPS.split(',')
 
     this.client = ldap.createClient({ url: process.env.LDAP_URL });
 
@@ -52,7 +54,10 @@ export class LdapService {
         if (err) {
           reject(err);
         } else {
-          this.addUserToGroup(userDN, `cn=office,${this.groupBaseDN}`)
+          this.defaultGroups.forEach(group => {
+            this.addUserToGroup(userDN, `cn=${group},${this.groupBaseDN}`)
+          })
+
           resolve(uidNumber)
         }
       });
