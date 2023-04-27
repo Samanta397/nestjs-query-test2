@@ -27,6 +27,13 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     return this.service.createOne(user)
   }
 
+  @Query(() => UserDto)
+  async userByUUID(@Args('uuid') uuid: number) {
+    const user =  await this.ldapService.getUserByUUID(uuid);
+    console.log('>>>>>', user)
+    return this.service.findById(1)
+  }
+
   @Query(() => UserConnection)
   async users(@Args() query: UserQuery): Promise<ConnectionType<UserDto>> {
     console.log(345345345345345345345345)

@@ -1,4 +1,4 @@
-import {Field, GraphQLISODateTime, ID, ObjectType} from "@nestjs/graphql";
+import {Field, GraphQLISODateTime, ID, Int, ObjectType} from "@nestjs/graphql";
 import {
   FilterableField,
   FilterableUnPagedRelation,
@@ -26,6 +26,9 @@ export class UserDto {
 
   @Field()
   phone!: string;
+
+  @Field(() => Int)
+  uuid!: number;
 
   @Field()
   password!: string;

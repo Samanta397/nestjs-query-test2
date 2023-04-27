@@ -12,7 +12,7 @@ export class LdapService {
   private readonly ldapPassword: string;
   private readonly defaultGroups: string[];
 
-  private client: ldap.Client;
+  private ldapClient: ldap.Client;
 
   constructor() {
     this.userBaseDN = process.env.LDAP_USER_BASEDN;
@@ -21,7 +21,7 @@ export class LdapService {
     this.ldapPassword = process.env.LDAP_PASSWORD;
     this.defaultGroups = process.env.LDAP_DEFAULT_USER_GROUPS.split(',')
 
-    this.client = ldap.createClient({ url: process.env.LDAP_URL });
+    this.ldapClient = ldap.createClient({ url: process.env.LDAP_URL });
 
     this.start();
   }
@@ -50,7 +50,7 @@ export class LdapService {
     };
 
     return new Promise((resolve, reject) => {
-      this.client.add(userDN, userData, (err) => {
+      this.ldapClient.add(userDN, userData, (err) => {
         if (err) {
           reject(err);
         } else {
@@ -65,39 +65,42 @@ export class LdapService {
 
   }
 
+  async getUserByUUID(uuid) {
+    let user: null;
+    const searchOpts = {
+      scope: 'sub',
+      filter: `(uidNumber=${uuid})`,
+    };
+
+    const searchResult = await this.search(this.userBaseDN, searchOpts);
+
+    // @ts-ignore
+    user = searchResult.attributes.reduce((acc, propObj) => {
+      acc[propObj.type] = propObj.values.length === 1 ? propObj.values[0] : propObj.values
+      return acc
+    }, {})
+
+    return user;
+  }
+
   async getUserMaxUidNumber(): Promise<number> {
+    let maxUidNumber = 0;
     const searchOpts = {
       scope: 'sub',
       filter: '(objectClass=posixAccount)', // фільтр для пошуку користувачів
       attributes: ['uidNumber'], // атрибут, значення якого будуть отримані
     };
 
-    return new Promise((resolve, reject) => {
-      let maxUidNumber = 0;
+    const searchResult = await this.search(this.userBaseDN, searchOpts);
 
-      this.client.search(this.userBaseDN, searchOpts, (err, res) => {
-        assert.ifError(err);
+    // @ts-ignore
+    const uidNumber = parseInt(searchResult.attributes[0].values[0]);
 
-        res.on('searchEntry', function (entry) {
-          const uidNumber = parseInt(entry.pojo.attributes[0].values[0]);
-          if (uidNumber > maxUidNumber) {
-            maxUidNumber = uidNumber;
-          }
-        });
+    if (uidNumber > maxUidNumber) {
+      maxUidNumber = uidNumber;
+    }
 
-        res.on('error', function (err) {
-          reject(err);
-        });
-
-        res.on('end', (result) => {
-            if (result.status === 0) {
-              resolve(maxUidNumber + 1);
-            } else {
-              reject(new Error(`LDAP search failed with result code ${result.status}`));
-            }
-        })
-      })
-    });
+    return maxUidNumber + 1;
   }
 
   async addUserToGroup(userDN, groupDN) {
@@ -109,7 +112,7 @@ export class LdapService {
       })
     });
 
-    await this.client.modify(groupDN, change, (err) => {
+    await this.ldapClient.modify(groupDN, change, (err) => {
       if (err) {
         throw new Error(err)
       }
@@ -117,8 +120,24 @@ export class LdapService {
   }
 
   start() {
-    this.client.bind(this.ldapUsername, this.ldapPassword, (err) => {
+    this.ldapClient.bind(this.ldapUsername, this.ldapPassword, (err) => {
       assert.ifError(err);
+    });
+  }
+
+  async search(searchBaseDN,searchOpts) {
+    return new Promise((resolve, reject) => {
+      this.ldapClient.search(searchBaseDN, searchOpts, (err, res) => {
+        assert.ifError(err);
+
+        res.on('searchEntry', function (entry) {
+          resolve(entry.pojo);
+        });
+
+        res.on('error', function (err) {
+          reject(err);
+        });
+      })
     });
   }
 }
