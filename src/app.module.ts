@@ -7,6 +7,7 @@ import {GraphQLModule} from "@nestjs/graphql";
 import {ApolloDriver, ApolloDriverConfig} from "@nestjs/apollo";
 import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
+import { LdapModule } from '@app/ldap'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PermissionModule } from './permission/permission.module';
       driver: ApolloDriver,
       autoSchemaFile: true,
     }),
+    LdapModule,
     UserModule,
     RoleModule,
     PermissionModule,

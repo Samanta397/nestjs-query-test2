@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
 import {NestjsQueryGraphQLModule} from "@ptc-org/nestjs-query-graphql";
-import {UserEntity} from "./user.entity";
-import {UserDto} from "./user.dto";
+import {UserEntity} from "./dto/user.entity";
+import {UserDto} from "./dto/user.dto";
 import {NestjsQueryTypeOrmModule} from "@ptc-org/nestjs-query-typeorm";
+import {UserResolver} from "./user.resolver";
+import {LdapModule} from "@app/ldap";
 
 @Module({
+  providers: [UserResolver],
   imports: [
+    LdapModule,
     NestjsQueryGraphQLModule.forFeature({
       // import the NestjsQueryTypeOrmModule to register the entity with typeorm
       // and provide a QueryService
@@ -15,6 +19,8 @@ import {NestjsQueryTypeOrmModule} from "@ptc-org/nestjs-query-typeorm";
         {
           EntityClass: UserEntity,
           DTOClass: UserDto,
+          create: {disabled: true},
+          read: {disabled: true}
         },
       ],
     }),

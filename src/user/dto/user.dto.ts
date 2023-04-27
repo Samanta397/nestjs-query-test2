@@ -6,8 +6,9 @@ import {
   PagingStrategies,
   QueryOptions
 } from "@ptc-org/nestjs-query-graphql";
-import {PermissionDto} from "../permission/permission.dto";
-import {RoleDto} from "../role/role.dto";
+import {PermissionDto} from "../../permission/permission.dto";
+import {RoleDto} from "../../role/role.dto";
+import {Column} from "typeorm";
 
 @ObjectType('User')
 @FilterableUnPagedRelation('permissions', () => PermissionDto)
@@ -17,15 +18,15 @@ export class UserDto {
   @IDField(() => ID)
   id!: number;
 
-  @FilterableField()
-  username!: string;
+  @Field()
+  firstName!: string;
 
-  @FilterableField()
-  email!: string;
+  @Field()
+  lastName!: string;
 
-  @Field(() => GraphQLISODateTime)
-  created!: Date;
+  @Field()
+  phone!: string;
 
-  @Field(() => GraphQLISODateTime)
-  updated!: Date;
+  @Field()
+  password!: string;
 }

@@ -7,7 +7,7 @@ import {
   QueryOptions
 } from "@ptc-org/nestjs-query-graphql";
 import {PermissionDto} from "../permission/permission.dto";
-import {UserDto} from "../user/user.dto";
+import {UserDto} from "../user/dto/user.dto";
 
 @ObjectType("Role")
 @FilterableUnPagedRelation('permissions', () => PermissionDto)
