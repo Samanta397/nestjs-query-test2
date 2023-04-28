@@ -31,14 +31,8 @@ export class UserResolver extends CRUDResolver(UserDto,  {
 
   @Mutation(() => UserDto)
   async updateUserByUUID(@Args('uuid', {type: () => Int}) uuid: number, @Args('updateObj') updateObj: UpdateUserDto) {
-    const user =  await this.ldapService.updateUserByUUID(uuid, updateObj);
+    const user =  await this.ldapService.updateUser(uuid, updateObj);
     console.log('update user by uui', user)
-    return this.service.findById(1)
-  }
-
-  @Mutation(() => UserDto)
-  async deleteUserByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
-    await this.ldapService.deleteUserByUUID(uuid);
     return this.service.findById(1)
   }
 
@@ -65,6 +59,13 @@ export class UserResolver extends CRUDResolver(UserDto,  {
   }
 
   @Mutation(() => UserDto)
+  async addUserPhoto(@Args('uuid', {type: () => Int}) uuid: number, @Args('url') url: string) {
+    const res = await this.ldapService.addUserPhoto(uuid, url);
+    // console.log('user restored', res)
+    return this.service.findById(2);
+  }
+
+  @Mutation(() => UserDto)
   async deleteUserFromGroup(@Args('uuid', {type: () => Int}) uuid: number, @Args('groupName') groupName: string) {
     await this.ldapService.deleteUserFromGroup(uuid, groupName);
     return this.service.findById(1)
@@ -72,7 +73,7 @@ export class UserResolver extends CRUDResolver(UserDto,  {
 
   @Query(() => UserDto)
   async userByUUID(@Args('uuid', {type: () => Int}) uuid: number) {
-    const user =  await this.ldapService.getUserByUUID(uuid);
+    const user =  await this.ldapService.getUser(uuid);
     console.log('user by uui', user)
     return this.service.findById(1)
   }

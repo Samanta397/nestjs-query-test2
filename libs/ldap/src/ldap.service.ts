@@ -2,8 +2,9 @@ import {Injectable} from '@nestjs/common';
 import * as ldap from 'ldapjs';
 import * as process from "process";
 import * as assert from "assert";
-import {createModifyObj} from "@app/ldap/utils/createModifyObj";
+import {getModifyObj} from "@app/ldap/utils/getModifyObj";
 import {createHashPassword} from "@app/ldap/utils/createHashPassword";
+import {getBinaryFileFromUrl} from "@app/ldap/utils/getBinaryFileFromUrl";
 
 @Injectable()
 export class LdapService {
@@ -27,11 +28,12 @@ export class LdapService {
     this.start();
   }
 
+  //create user
   async createUser(user) {
     const username = `${user.firstName}.${user.lastName}`.toLowerCase();
     const cn = `${user.firstName} ${user.lastName}`;
     const passwordHash = createHashPassword(user.password)
-    const uidNumber = await this.getUserMaxUidNumber();
+    const uidNumber = await this.getMaxUidNumber();
     const userDN = `cn=${cn},${this.userBaseDN}`;
 
     const userData = {
@@ -58,7 +60,7 @@ export class LdapService {
             this.addUserToGroup(cn, group)
           })
 
-          const user = this.getUserByUUID(uidNumber);
+          const user = this.getUser(uidNumber);
           resolve(user)
         }
       });
@@ -66,7 +68,8 @@ export class LdapService {
 
   }
 
-  async getUserByUUID(uuid) {
+  //get user by uuid
+  async getUser(uuid) {
     const searchOpts = {
       scope: 'sub',
       filter: `(uidNumber=${uuid})`,
@@ -80,51 +83,42 @@ export class LdapService {
     }, {})
   }
 
-  async updateUserByUUID(uuid, updateObj) {
-    const {cn} = await this.getUserByUUID(uuid);
+  //update user by uuid
+  async updateUser(uuid, updateObj) {
+    const {cn} = await this.getUser(uuid);
     const userDN = `cn=${cn},${this.userBaseDN}`;
     const { lastName, phone } = updateObj;
-    let snChangeObj = null;
-    let mobileChangeObj = null;
-    let changeObj = [];
 
-    if (lastName) {
-      snChangeObj = createModifyObj('replace', {
-        type: 'sn',
-        values: lastName
-      })
-      changeObj.push(snChangeObj)
-    }
+    const mutableArr = [
+      {type: 'sn', values: lastName},
+      {type: 'mobile', values: phone}
+    ];
 
-    if (phone) {
-      mobileChangeObj = createModifyObj('replace', {
-        type: 'mobile',
-        values: phone
-      })
-      changeObj.push(mobileChangeObj)
-    }
+    const changeObj = getModifyObj('replace', mutableArr)
 
     await this.modify(userDN, changeObj)
-    return await this.getUserByUUID(uuid);
+    return await this.getUser(uuid);
   }
 
-  async updateUserPassword(uuid, newPassword) {
-    const {cn} = await this.getUserByUUID(uuid);
+  //change user password
+  async updateUserPassword(uuid, newPassword): Promise<boolean> {
+    const {cn} = await this.getUser(uuid);
     const userDN = `cn=${cn},${this.userBaseDN}`;
     const newPasswordHash = createHashPassword(newPassword);
 
-    const changeObj = createModifyObj('replace', {
+    const changeObj = getModifyObj('replace', {
       type: 'userPassword',
       values: newPasswordHash
     });
 
     await this.modify(userDN, changeObj)
-    return await this.getUserByUUID(uuid);
+    return await this.getUser(uuid);
   }
 
-  async deactivateUser(uuid) {
+  //deactivate user (remove all groups and add to "deactivated" group)
+  async deactivateUser(uuid): Promise<boolean> {
     const groups = await this.getUserGroups(uuid);
-    const user = await this.getUserByUUID(uuid);
+    const user = await this.getUser(uuid);
 
     groups.forEach(group => {
       this.deleteUserFromGroup(uuid, group)
@@ -133,8 +127,9 @@ export class LdapService {
    return await this.addUserToGroup(user.cn, 'deactivated');
   }
 
-  async restoreUser(uuid, groups) {
-    const user = await this.getUserByUUID(uuid);
+  //restore user (add groups and remove from "deactivated" group)
+  async restoreUser(uuid, groups): Promise<boolean> {
+    const user = await this.getUser(uuid);
 
     groups.split(',').forEach(group => {
       this.addUserToGroup(user.cn, group)
@@ -143,46 +138,12 @@ export class LdapService {
     return this.deleteUserFromGroup(uuid, 'deactivated');
   }
 
-  async getUserMaxUidNumber(): Promise<number> {
-    const searchOpts = {
-      scope: 'sub',
-      filter: '(objectClass=posixAccount)', // фільтр для пошуку користувачів
-      attributes: ['uidNumber'], // атрибут, значення якого будуть отримані
-    };
-
-    return new Promise((resolve, reject) => {
-      let maxUidNumber = 0;
-
-      this.ldapClient.search(this.userBaseDN, searchOpts, (err, res) => {
-        assert.ifError(err);
-
-        res.on('searchEntry', function (entry) {
-          const uidNumber = parseInt(entry.pojo.attributes[0].values[0]);
-          if (uidNumber > maxUidNumber) {
-            maxUidNumber = uidNumber;
-          }
-        });
-
-        res.on('error', function (err) {
-          reject(err);
-        });
-
-        res.on('end', (result) => {
-            if (result.status === 0) {
-              resolve(maxUidNumber + 1);
-            } else {
-              reject(new Error(`LDAP search failed with result code ${result.status}`));
-            }
-        })
-      })
-    });
-  }
-
-  async addUserToGroup(userName, groupName) {
+  //add user to group
+  async addUserToGroup(userName, groupName): Promise<boolean> {
     const  userDN = `cn=${userName},${this.userBaseDN}`;
     const  groupDN = `cn=${groupName},${this.groupBaseDN}`;
 
-    const changeObj = createModifyObj('add', {
+    const changeObj = getModifyObj('add', {
       type: 'uniqueMember',
       values: [userDN]
     })
@@ -190,12 +151,13 @@ export class LdapService {
     return await this.modify(groupDN, changeObj)
   }
 
-  async deleteUserFromGroup(uuid, groupName) {
-    const {cn} = await this.getUserByUUID(uuid);
+  //delete user from group
+  async deleteUserFromGroup(uuid, groupName): Promise<boolean> {
+    const {cn} = await this.getUser(uuid);
     const userDN = `cn=${cn},${this.userBaseDN}`;
     const groupDN = `cn=${groupName},${this.groupBaseDN}`
 
-    const changeObj = createModifyObj('delete', {
+    const changeObj = getModifyObj('delete', {
       type: 'uniqueMember',
       values: userDN
     });
@@ -203,6 +165,7 @@ export class LdapService {
     return await this.modify(groupDN, changeObj);
   }
 
+  //get all groups the user belongs to
   async getUserGroups(uuid): Promise<string[]> {
     const searchOpts = {
       scope: 'sub',
@@ -218,7 +181,8 @@ export class LdapService {
     }, [])
   }
 
-  async getAllGroups() {
+  //get all existing groups
+  async getAllGroups(): Promise<string[]> {
     const searchOpts = {
       scope: 'sub',
       filter: '(objectClass=groupOfUniqueNames)',
@@ -247,6 +211,64 @@ export class LdapService {
         })
       })
     });
+  }
+
+  //get the highest value of uidNumber
+  async getMaxUidNumber(): Promise<number> {
+    const searchOpts = {
+      scope: 'sub',
+      filter: '(objectClass=posixAccount)',
+      attributes: ['uidNumber'],
+    };
+
+    return new Promise((resolve, reject) => {
+      let maxUidNumber = 0;
+
+      this.ldapClient.search(this.userBaseDN, searchOpts, (err, res) => {
+        assert.ifError(err);
+
+        res.on('searchEntry', function (entry) {
+          const uidNumber = parseInt(entry.pojo.attributes[0].values[0]);
+          if (uidNumber > maxUidNumber) {
+            maxUidNumber = uidNumber;
+          }
+        });
+
+        res.on('error', function (err) {
+          reject(err);
+        });
+
+        res.on('end', (result) => {
+          if (result.status === 0) {
+            resolve(maxUidNumber + 1);
+          } else {
+            reject(new Error(`LDAP search failed with result code ${result.status}`));
+          }
+        })
+      })
+    });
+  }
+
+  async addUserPhoto(uuid, url) {
+    const {cn, description, jpegPhoto} = await this.getUser(uuid);
+    const userDN = `cn=${cn},${this.userBaseDN}`;
+    const modifyMethod = description ? 'replace' : 'add';
+    const file = await getBinaryFileFromUrl(url);
+
+    const mutableObj = [
+      {
+        type: 'description',
+        values: url
+      },
+      {
+        type: 'jpegPhoto',
+        values: file
+      }
+    ]
+
+    const changeObj = getModifyObj(modifyMethod, mutableObj);
+
+    await this.modify(userDN, changeObj)
   }
 
   async search(searchBaseDN, searchOpts): Promise<any[]> {
