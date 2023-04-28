@@ -16,7 +16,7 @@ export class UserResolver extends CRUDResolver(UserDto,  {
   read: { many: {disabled: true} }
 }) {
   constructor(
-    @InjectQueryService(UserEntity) readonly service: QueryService<UserDto>, //UserEntity ?????????,
+    @InjectQueryService(UserEntity) readonly service: QueryService<UserDto>,
     private ldapService: LdapService
   ) {
     super(service);
@@ -24,7 +24,8 @@ export class UserResolver extends CRUDResolver(UserDto,  {
 
   @Mutation(() => UserDto)
   async createOneUser(@Args('user') user: CreateUserDto): Promise<UserDto> {
-    user["uuid"] = await this.ldapService.createUser(user);
+    const ldapUser = await this.ldapService.createUser(user);
+    user['uuid'] = ldapUser['uidNumber'];
     return this.service.createOne(user)
   }
 
@@ -53,6 +54,14 @@ export class UserResolver extends CRUDResolver(UserDto,  {
     const res = await this.ldapService.deactivateUser(uuid);
     console.log('user deactivated', res)
     return this.service.updateOne(2, {groups: groups.join(',')})
+  }
+
+  @Mutation(() => UserDto)
+  async restoreUser(@Args('uuid', {type: () => Int}) uuid: number) {
+    const user = await this.service.findById(2);
+    const res = await this.ldapService.restoreUser(user.uuid, user.groups);
+    console.log('user restored', res)
+    return this.service.findById(2);
   }
 
   @Mutation(() => UserDto)

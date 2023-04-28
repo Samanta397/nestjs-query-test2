@@ -28,7 +28,7 @@ export class UserDto {
   @Field(() => Int)
   uuid!: number;
 
-  @Field(() => Int)
+  @Field()
   groups!: string;
 
   @Field()

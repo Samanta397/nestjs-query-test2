@@ -58,7 +58,8 @@ export class LdapService {
             this.addUserToGroup(cn, group)
           })
 
-          resolve(uidNumber)
+          const user = this.getUserByUUID(uidNumber);
+          resolve(user)
         }
       });
     })
@@ -107,17 +108,6 @@ export class LdapService {
     return await this.getUserByUUID(uuid);
   }
 
-  async deleteUserByUUID(uuid) {
-    const {cn} = await this.getUserByUUID(uuid);
-    const userDN = `cn=${cn},${this.userBaseDN}`;
-
-    this.ldapClient.del(userDN, function (err) {
-      if (err) {
-        throw new Error(err)
-      }
-    });
-  }
-
   async updateUserPassword(uuid, newPassword) {
     const {cn} = await this.getUserByUUID(uuid);
     const userDN = `cn=${cn},${this.userBaseDN}`;
@@ -141,6 +131,16 @@ export class LdapService {
     })
 
    return await this.addUserToGroup(user.cn, 'deactivated');
+  }
+
+  async restoreUser(uuid, groups) {
+    const user = await this.getUserByUUID(uuid);
+
+    groups.split(',').forEach(group => {
+      this.addUserToGroup(user.cn, group)
+    });
+
+    return this.deleteUserFromGroup(uuid, 'deactivated');
   }
 
   async getUserMaxUidNumber(): Promise<number> {
@@ -266,19 +266,8 @@ export class LdapService {
   }
 
   async modify(modifyDN, changeOpts): Promise<boolean> {
-    return await this.ldapClient.modify(modifyDN, changeOpts, (err) => {
-      // if (err) {
-      //   throw new Error(err)
-      // } else {
-      //   return true;
-      // }
-      // assert.ifError(err);
-
-      return !err;
-    });
+    return await this.ldapClient.modify(modifyDN, changeOpts, (err) => !err);
   }
-
-
 
   start() {
     this.ldapClient.bind(this.ldapUsername, this.ldapPassword, (err) => {
