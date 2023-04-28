@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import * as ldap from 'ldapjs';
 import * as process from "process";
 import * as assert from "assert";
-import {createModifyObj} from "@app/ldap/helpers/createModifyObj";
-import {createHashPassword} from "@app/ldap/helpers/createHashPassword";
+import {createModifyObj} from "@app/ldap/utils/createModifyObj";
+import {createHashPassword} from "@app/ldap/utils/createHashPassword";
 
 @Injectable()
 export class LdapService {
@@ -55,7 +55,7 @@ export class LdapService {
           reject(err);
         } else {
           this.defaultGroups.forEach(group => {
-            this.addUserToGroup(userDN, `cn=${group},${this.groupBaseDN}`)
+            this.addUserToGroup(cn, group)
           })
 
           resolve(uidNumber)
@@ -66,7 +66,6 @@ export class LdapService {
   }
 
   async getUserByUUID(uuid) {
-    let user = null;
     const searchOpts = {
       scope: 'sub',
       filter: `(uidNumber=${uuid})`,
@@ -74,13 +73,10 @@ export class LdapService {
 
     const searchResult = await this.search(this.userBaseDN, searchOpts);
 
-    // @ts-ignore
-    user = searchResult.attributes.reduce((acc, propObj) => {
+    return searchResult.reduce((acc, propObj) => {
       acc[propObj.type] = propObj.values.length === 1 ? propObj.values[0] : propObj.values
       return acc
     }, {})
-
-    return user;
   }
 
   async updateUserByUUID(uuid, updateObj) {
@@ -136,6 +132,17 @@ export class LdapService {
     return await this.getUserByUUID(uuid);
   }
 
+  async deactivateUser(uuid) {
+    const groups = await this.getUserGroups(uuid);
+    const user = await this.getUserByUUID(uuid);
+
+    groups.forEach(group => {
+      this.deleteUserFromGroup(uuid, group)
+    })
+
+   return await this.addUserToGroup(user.cn, 'deactivated');
+  }
+
   async getUserMaxUidNumber(): Promise<number> {
     const searchOpts = {
       scope: 'sub',
@@ -171,13 +178,16 @@ export class LdapService {
     });
   }
 
-  async addUserToGroup(userDN, groupDN) {
+  async addUserToGroup(userName, groupName) {
+    const  userDN = `cn=${userName},${this.userBaseDN}`;
+    const  groupDN = `cn=${groupName},${this.groupBaseDN}`;
+
     const changeObj = createModifyObj('add', {
       type: 'uniqueMember',
       values: [userDN]
     })
 
-    await this.modify(groupDN, changeObj)
+    return await this.modify(groupDN, changeObj)
   }
 
   async deleteUserFromGroup(uuid, groupName) {
@@ -190,11 +200,10 @@ export class LdapService {
       values: userDN
     });
 
-    await this.modify(groupDN, changeObj);
-    return await this.getUserByUUID(uuid);
+    return await this.modify(groupDN, changeObj);
   }
 
-  async getUserGroups(uuid) {
+  async getUserGroups(uuid): Promise<string[]> {
     const searchOpts = {
       scope: 'sub',
       filter: `(uidNumber=${uuid})`,
@@ -202,13 +211,11 @@ export class LdapService {
     };
 
     const searchResult = await this.search(this.userBaseDN, searchOpts);
-    // @ts-ignore
-    const groups = searchResult.attributes[0].values.reduce((acc, group) => {
+
+    return searchResult[0].values.reduce((acc, group) => {
       acc.push(group.split(',')[0].slice(3))
       return acc
     }, [])
-
-    return groups
   }
 
   async getAllGroups() {
@@ -242,13 +249,13 @@ export class LdapService {
     });
   }
 
-  async search(searchBaseDN, searchOpts) {
+  async search(searchBaseDN, searchOpts): Promise<any[]> {
     return new Promise((resolve, reject) => {
       this.ldapClient.search(searchBaseDN, searchOpts, (err, res) => {
         assert.ifError(err);
 
         res.on('searchEntry', function (entry) {
-          resolve(entry.pojo);
+          resolve(entry.pojo.attributes);
         });
 
         res.on('error', function (err) {
@@ -258,11 +265,16 @@ export class LdapService {
     });
   }
 
-  async modify(modifyDN, changeOpts) {
-    await this.ldapClient.modify(modifyDN, changeOpts, (err) => {
-      if (err) {
-        throw new Error(err)
-      }
+  async modify(modifyDN, changeOpts): Promise<boolean> {
+    return await this.ldapClient.modify(modifyDN, changeOpts, (err) => {
+      // if (err) {
+      //   throw new Error(err)
+      // } else {
+      //   return true;
+      // }
+      // assert.ifError(err);
+
+      return !err;
     });
   }
 

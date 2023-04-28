@@ -48,6 +48,14 @@ export class UserResolver extends CRUDResolver(UserDto,  {
   }
 
   @Mutation(() => UserDto)
+  async deactivateUser(@Args('uuid', {type: () => Int}) uuid: number) {
+    const groups = await this.ldapService.getUserGroups(uuid);
+    const res = await this.ldapService.deactivateUser(uuid);
+    console.log('user deactivated', res)
+    return this.service.updateOne(2, {groups: groups.join(',')})
+  }
+
+  @Mutation(() => UserDto)
   async deleteUserFromGroup(@Args('uuid', {type: () => Int}) uuid: number, @Args('groupName') groupName: string) {
     await this.ldapService.deleteUserFromGroup(uuid, groupName);
     return this.service.findById(1)

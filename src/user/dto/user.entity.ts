@@ -22,6 +22,9 @@ export class UserEntity {
   @Column()
   uuid?: number;
 
+  @Column({nullable: true})
+  groups?: string;
+
   @ManyToMany(() => PermissionEntity, { cascade: true })
   @JoinTable()
   permissions: PermissionEntity[];

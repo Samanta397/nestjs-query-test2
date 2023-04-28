@@ -28,6 +28,9 @@ export class UserDto {
   @Field(() => Int)
   uuid!: number;
 
+  @Field(() => Int)
+  groups!: string;
+
   @Field()
   password!: string;
 }
