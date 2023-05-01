@@ -12,7 +12,7 @@ export const getBinaryFileFromUrl = (url) => {
       });
 
       res.on('end', () => {
-        resolve(new Buffer(fileData, "binary"))
+        resolve(Buffer.from(fileData, "binary"))
       });
 
     }).on('error', (err) => {
