@@ -8,22 +8,16 @@ export class UserEntity {
   id!: number;
 
   @Column()
+  username!: string;
+
+  @Column()
   firstName!: string;
 
   @Column()
   lastName!: string;
 
   @Column()
-  phone!: string;
-
-  @Column()
   password!: string;
-
-  @Column()
-  uuid?: number;
-
-  @Column({nullable: true})
-  groups?: string;
 
   @ManyToMany(() => PermissionEntity, { cascade: true })
   @JoinTable()
@@ -32,5 +26,4 @@ export class UserEntity {
   @ManyToMany(() => RoleEntity, { cascade: true })
   @JoinTable()
   roles: RoleEntity[];
-
 }

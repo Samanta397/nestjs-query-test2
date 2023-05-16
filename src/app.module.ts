@@ -1,13 +1,12 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import {MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import {GraphQLModule} from "@nestjs/graphql";
 import {ApolloDriver, ApolloDriverConfig} from "@nestjs/apollo";
 import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
-import { LdapModule } from '@app/ldap'
+import {AuthModule} from "./auth/auth.module";
+import {UserScopesMiddleware} from "./middlewares/userScopes.middleware";
 
 @Module({
   imports: [
@@ -25,12 +24,16 @@ import { LdapModule } from '@app/ldap'
       driver: ApolloDriver,
       autoSchemaFile: true,
     }),
-    LdapModule,
+    AuthModule,
     UserModule,
     RoleModule,
     PermissionModule,
     ],
-  controllers: [AppController],
-  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(UserScopesMiddleware)
+      .forRoutes('graphql');
+  }
+}
