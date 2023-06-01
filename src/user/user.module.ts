@@ -5,15 +5,30 @@ import {UserDto} from "./dto/user.dto";
 import {NestjsQueryTypeOrmModule} from "@ptc-org/nestjs-query-typeorm";
 import {UserResolver} from "./user.resolver";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
-import {AuthModule} from "../auth/auth.module";
 import {UserScopesMiddleware} from "../middlewares/userScopes.middleware";
+import {WinstonLoggerModule} from "../logger/winstonLogger.module";
+import {LoggingInterceptor} from "../interceptors/logging.interceptor";
+import {APP_INTERCEPTOR} from "@nestjs/core";
+import {RoleResolver} from "../role/role.resolver";
+import {RoleService} from "../role/role.service";
+import {RoleModule} from "../role/role.module";
+import {PermissionModule} from "../permission/permission.module";
+import {CreateUserDto} from "./dto/user.input";
 
 // define the persistence module so it can be exported
 const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity])
 
 @Module({
-  providers: [UserResolver],
+  providers: [
+    UserResolver,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
   imports: [
+    RoleModule,
+    PermissionModule,
     NestjsQueryGraphQLModule.forFeature({
       // import it in the graphql module
       imports: [nestjsQueryTypeOrmModule],
@@ -22,14 +37,13 @@ const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity
         {
           EntityClass: UserEntity,
           DTOClass: UserDto,
-          // enableAggregate: true,
-          // enableSubscriptions: true,
+          CreateDTOClass: CreateUserDto,
 
           // check authorize for default methods
           guards: [JwtAuthGuard],
 
 
-          read: {disabled: true},
+          // read: {disabled: true},
           // create: {disabled: true},
           // delete: {disabled: true}
         },
@@ -37,8 +51,8 @@ const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity
     }),
     // import it into the subTaskModule so it can be exported
     nestjsQueryTypeOrmModule,
+    WinstonLoggerModule,
   ],
-  // export the persistence module, so it can be used by the TodoItemService
   exports: [nestjsQueryTypeOrmModule],
 })
 

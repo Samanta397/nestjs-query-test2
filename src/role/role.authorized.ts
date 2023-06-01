@@ -9,7 +9,7 @@ export class RoleAuthorizer implements CustomAuthorizer<RoleDto> {
   authorize(context: UserContext, authorizationContext?: AuthorizationContext) {
     const userScopes = context.req.userData.scopes;
 
-    if (userScopes.includes('role.read') && authorizationContext?.operationGroup === 'read') {
+    if (authorizationContext?.operationGroup === 'read' && userScopes.includes('role.read')) {
       return Promise.resolve({} );
     }
 

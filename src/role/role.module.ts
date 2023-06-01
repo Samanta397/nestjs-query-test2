@@ -1,15 +1,26 @@
-import { Module } from '@nestjs/common';
+import {forwardRef, Module} from '@nestjs/common';
 import {NestjsQueryGraphQLModule} from "@ptc-org/nestjs-query-graphql";
 import {RoleEntity} from "./role.entity";
 import {NestjsQueryTypeOrmModule} from "@ptc-org/nestjs-query-typeorm";
 import {RoleDto} from "./role.dto";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
-import {RoleResolver} from "./role.resolver";
+import {APP_INTERCEPTOR} from "@nestjs/core";
+import {LoggingInterceptor} from "../interceptors/logging.interceptor";
+import {WinstonLoggerModule} from "../logger/winstonLogger.module";
+import {RoleService} from "./role.service";
+import {PermissionModule} from "../permission/permission.module";
 
 
 @Module({
-  providers: [RoleResolver],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+    RoleService,
+  ],
   imports: [
+    forwardRef(() => PermissionModule),
     NestjsQueryGraphQLModule.forFeature({
       imports: [NestjsQueryTypeOrmModule.forFeature([RoleEntity])],
       resolvers: [
@@ -18,13 +29,15 @@ import {RoleResolver} from "./role.resolver";
           EntityClass: RoleEntity,
           guards: [JwtAuthGuard],
 
-          read: {disabled: true},
-          // create: {disabled: true},
-          delete: {disabled: true}
+          // read: {one: {disabled: true}},
+          // // create: {disabled: true},
+          // delete: {disabled: true}
         }
       ],
 
     }),
+    WinstonLoggerModule
   ],
+  exports: [RoleService]
 })
 export class RoleModule {}

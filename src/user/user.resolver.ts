@@ -1,22 +1,20 @@
 import {Args, Mutation, Query, Resolver} from "@nestjs/graphql";
 import {UserDto} from "./dto/user.dto";
 import {
-  Authorizer,
   AuthorizerFilter,
   AuthorizerInterceptor,
-  CRUDResolver, InjectAuthorizer, OperationGroup,
+  CRUDResolver, OperationGroup,
 } from "@ptc-org/nestjs-query-graphql";
 import {UserEntity} from "./dto/user.entity";
 import {Filter, InjectQueryService, QueryService} from "@ptc-org/nestjs-query-core";
 import {CreateUserDto} from "./dto/user.input";
-import {UseGuards, UseInterceptors} from "@nestjs/common";
+import {Inject, UseGuards, UseInterceptors} from "@nestjs/common";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
-import {ScopesAuthGuard} from "./scopes_auth.guard";
 
 @Resolver(() => UserDto)
 // check authorize for custom methods
 @UseGuards(JwtAuthGuard)
-@UseInterceptors(AuthorizerInterceptor(UserDto))
+@UseInterceptors(AuthorizerInterceptor(UserDto), )
 export class UserResolver extends CRUDResolver(UserDto, {
   read: {one: {disabled:true}},
   // create: { disabled: true },
@@ -30,7 +28,6 @@ export class UserResolver extends CRUDResolver(UserDto, {
 
 
   @Query(() => UserDto)
-  // @UseGuards(new ScopesAuthGuard(['user.read']))
   async user(
     @Args('id') id: number,
     @AuthorizerFilter({
@@ -42,6 +39,12 @@ export class UserResolver extends CRUDResolver(UserDto, {
     ): Promise<UserDto> {
     return this.service.findById(id);
 
+  }
+
+  @Query(() => UserDto)
+  async getAdditionalInfo( @Args('id') id: number) {
+    const user = await this.service.findById(id)
+    return user.username
   }
 
   @Mutation(() => UserDto)

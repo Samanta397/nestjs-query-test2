@@ -1,6 +1,6 @@
 import {AuthorizationContext, CustomAuthorizer} from "@ptc-org/nestjs-query-graphql";
 import {UserContext} from "../auth/auth.interfaces";
-import {Injectable, ForbiddenException} from "@nestjs/common";
+import {Injectable, ForbiddenException, Inject} from "@nestjs/common";
 import {UserDto} from "./dto/user.dto";
 import {Filter} from "@ptc-org/nestjs-query-core";
 
@@ -11,6 +11,10 @@ export class UserAuthorizer implements CustomAuthorizer<UserDto> {
     const userScopes = context.req.userData.scopes;
 
     if (authorizationContext?.operationGroup === 'read' && userScopes.includes('user.read')) {
+      return Promise.resolve({} );
+    }
+
+    if (authorizationContext?.operationGroup === 'create' && userScopes.includes('user.create')) {
       return Promise.resolve({} );
     }
 
@@ -35,6 +39,10 @@ export class UserAuthorizer implements CustomAuthorizer<UserDto> {
     }
 
     if (relationName === 'permissions' && authorizationContext?.operationGroup === 'update' && userScopes.includes('permission.edit')) {
+      return Promise.resolve({});
+    }
+
+    if (relationName === 'roles' && authorizationContext?.operationGroup === 'update' && userScopes.includes('role.edit')) {
       return Promise.resolve({});
     }
 

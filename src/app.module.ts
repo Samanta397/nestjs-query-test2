@@ -7,8 +7,10 @@ import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
 import {AuthModule} from "./auth/auth.module";
 import {UserScopesMiddleware} from "./middlewares/userScopes.middleware";
+import {WinstonLogger} from "./logger/winstonLogger.service";
 
 @Module({
+  providers: [WinstonLogger],
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -27,7 +29,7 @@ import {UserScopesMiddleware} from "./middlewares/userScopes.middleware";
     AuthModule,
     UserModule,
     RoleModule,
-    PermissionModule,
+    PermissionModule
     ],
 })
 export class AppModule implements NestModule {

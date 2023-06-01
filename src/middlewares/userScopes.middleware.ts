@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 export class UserScopesMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     req['userData'] = {
-      scopes: ['user.read', 'user.create', 'user.edit', 'permission.read',  'permission.edit'] //'role.read'
+      scopes: ['user.read', 'user.create', 'user.edit', 'role.read', 'role.edit', 'permission.read',  'permission.edit'] //'role.read'
     }
     next();
   }
