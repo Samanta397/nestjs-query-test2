@@ -14,6 +14,8 @@ import {RoleService} from "../role/role.service";
 import {RoleModule} from "../role/role.module";
 import {PermissionModule} from "../permission/permission.module";
 import {CreateUserDto} from "./dto/user.input";
+import {UserService} from "./user.service";
+import {TaskModule} from "../task/task.module";
 
 // define the persistence module so it can be exported
 const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity])
@@ -21,6 +23,7 @@ const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity
 @Module({
   providers: [
     UserResolver,
+    UserService,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
@@ -53,7 +56,7 @@ const nestjsQueryTypeOrmModule = NestjsQueryTypeOrmModule.forFeature([UserEntity
     nestjsQueryTypeOrmModule,
     WinstonLoggerModule,
   ],
-  exports: [nestjsQueryTypeOrmModule],
+  exports: [nestjsQueryTypeOrmModule, UserService],
 })
 
 export class UserModule implements NestModule {

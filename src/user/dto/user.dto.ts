@@ -2,7 +2,7 @@ import {Field, ID, Int, ObjectType} from "@nestjs/graphql";
 import {
   AuthorizationContext,
   Authorize,
-  FilterableField,
+  FilterableField, FilterableRelation,
   FilterableUnPagedRelation,
   IDField,
   PagingStrategies,
@@ -11,11 +11,13 @@ import {
 import {PermissionDto} from "../../permission/permission.dto";
 import {RoleDto} from "../../role/role.dto";
 import {UserAuthorizer} from "../user.authorizer";
+import {TaskDto} from "../../task/task.dto";
 
 @ObjectType('User')
-@Authorize(UserAuthorizer)
+// @Authorize(UserAuthorizer)
 @FilterableUnPagedRelation('permissions', () => PermissionDto, { update: { enabled: true }})
 @FilterableUnPagedRelation('roles', () => RoleDto,{update: {enabled: true}})
+@FilterableUnPagedRelation('tasks', () => TaskDto, {update: {enabled: true}})
 @QueryOptions({ pagingStrategy: PagingStrategies.OFFSET })
 export class UserDto {
   @IDField(() => ID)

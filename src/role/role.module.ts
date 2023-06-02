@@ -4,8 +4,6 @@ import {RoleEntity} from "./role.entity";
 import {NestjsQueryTypeOrmModule} from "@ptc-org/nestjs-query-typeorm";
 import {RoleDto} from "./role.dto";
 import {JwtAuthGuard} from "../auth/jwt-auth.guard";
-import {APP_INTERCEPTOR} from "@nestjs/core";
-import {LoggingInterceptor} from "../interceptors/logging.interceptor";
 import {WinstonLoggerModule} from "../logger/winstonLogger.module";
 import {RoleService} from "./role.service";
 import {PermissionModule} from "../permission/permission.module";
@@ -13,10 +11,6 @@ import {PermissionModule} from "../permission/permission.module";
 
 @Module({
   providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
     RoleService,
   ],
   imports: [

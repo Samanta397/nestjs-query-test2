@@ -31,13 +31,13 @@ export class LoggingInterceptor implements NestInterceptor {
           } else {
 
             //for "users", "roles", "permissions"
-            if (isQueryForMultipleEntity(key)) {
+            if (isQueryForMultipleEntity(key) || key === 'userByTaskId') {
               this.logger.audit(`${authUser.username} did ${typename} ${key}. Payload: ${response}`)
             }
 
             //for "user", "role", "permission"
             if (isQueryForSimpleEntity(key)) {
-              this.logger.audit(`${authUser.username} requested ${key} ${data.username || data.name}`)
+              this.logger.audit(`${authUser.username} requested ${key} "${data.username || data.name}"`)
             }
 
             //createOneUser, updateOneUser, deleteOneUser

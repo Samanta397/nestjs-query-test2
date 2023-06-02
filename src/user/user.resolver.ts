@@ -40,12 +40,12 @@ export class UserResolver extends CRUDResolver(UserDto, {
     return this.service.findById(id);
 
   }
-
-  @Query(() => UserDto)
-  async getAdditionalInfo( @Args('id') id: number) {
-    const user = await this.service.findById(id)
-    return user.username
-  }
+  //
+  // @Query(() => UserDto)
+  // async getAdditionalInfo( @Args('id') id: number) {
+  //   const user = await this.service.findById(id)
+  //   return user.username
+  // }
 
   @Mutation(() => UserDto)
   async createOneUser(@Args('user') user: CreateUserDto): Promise<UserDto> {

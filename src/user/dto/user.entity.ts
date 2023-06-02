@@ -1,6 +1,7 @@
-import {Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from "typeorm";
 import {PermissionEntity} from "../../permission/permission.entity";
 import {RoleEntity} from "../../role/role.entity";
+import {TaskEntity} from "../../task/task.entity";
 
 @Entity()
 export class UserEntity {
@@ -26,4 +27,10 @@ export class UserEntity {
   @ManyToMany(() => RoleEntity, { cascade: true })
   @JoinTable()
   roles: RoleEntity[];
+
+  @OneToMany(
+    () => TaskEntity,
+    task => task.user
+  )
+  tasks: TaskEntity[];
 }

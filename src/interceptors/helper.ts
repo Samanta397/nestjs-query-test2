@@ -1,9 +1,9 @@
 export const isQueryForMultipleEntity = (queryName) => {
-  return queryName === 'users' || queryName === 'roles' || queryName === 'permissions'
+  return queryName === 'users' || queryName === 'roles' || queryName === 'permissions' || queryName === 'tasks'
 }
 
 export const isQueryForSimpleEntity = (queryName) => {
-  return queryName === 'user' || queryName === 'role' || queryName === 'permission'
+  return queryName === 'user' || queryName === 'role' || queryName === 'permission' || queryName === 'task'
 }
 
 export const isRelationsMutation = (queryName) => {

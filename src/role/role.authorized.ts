@@ -13,6 +13,10 @@ export class RoleAuthorizer implements CustomAuthorizer<RoleDto> {
       return Promise.resolve({} );
     }
 
+    if (authorizationContext?.operationGroup === 'update' && userScopes.includes('role.read')) {
+      return Promise.resolve({} );
+    }
+
     // return Promise.resolve({id < 1});
     return Promise.reject(new ForbiddenException());
   }

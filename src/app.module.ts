@@ -8,6 +8,7 @@ import { PermissionModule } from './permission/permission.module';
 import {AuthModule} from "./auth/auth.module";
 import {UserScopesMiddleware} from "./middlewares/userScopes.middleware";
 import {WinstonLogger} from "./logger/winstonLogger.service";
+import { TaskModule } from './task/task.module';
 
 @Module({
   providers: [WinstonLogger],
@@ -29,7 +30,8 @@ import {WinstonLogger} from "./logger/winstonLogger.service";
     AuthModule,
     UserModule,
     RoleModule,
-    PermissionModule
+    PermissionModule,
+    TaskModule
     ],
 })
 export class AppModule implements NestModule {
